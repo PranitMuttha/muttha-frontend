@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muttha Sales - Professional Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .kpi-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .btn { transition: all 0.2s ease; cursor: pointer; }
+        .btn:active { transform: scale(0.95); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .hidden-view { display: none !important; }
+    </style>
+</head>
+<body class="p-3 md:p-6 lg:p-8">
+
+    <!-- Dashboard Content -->
+    <div id="dashboardApp" class="max-w-[1600px] mx-auto hidden-view">
+        <!-- Header -->
+        <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Muttha Sales Dashboard</h1>
+                <p class="text-slate-500 font-medium">Samrat Distribution Management System</p>
+            </div>
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <button onclick="logout()" class="btn w-full md:w-auto bg-white border border-red-200 text-red-600 px-6 py-2.5 rounded-xl font-bold hover:bg-red-50 shadow-sm">
+                    Logout
+                </button>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+
+            <!-- LEFT COLUMN: INPUT & CONTROLS -->
+            <div class="lg:col-span-4 space-y-6 md:space-y-8">
+                <!-- Date Selectors -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">View Date</label>
+                            <input type="date" id="viewDate" onchange="refreshAllViews()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Month Log</label>
+                            <input type="month" id="monthSelector" onchange="refreshAllViews()" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Entry Form -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <form id="entryForm" class="space-y-6">
+                        <div class="border-b border-slate-100 pb-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Entry Date</label>
+                            <input type="date" id="entryDate" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-inner">
+                        </div>
+                        
+                        <!-- Side by Side Form Layout -->
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-8">
+                            <!-- INCOME -->
+                            <section>
+                                <div class="flex items-center gap-2 mb-4 border-b border-emerald-50 pb-2">
+                                    <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
+                                    <h2 class="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">Income (IN)</h2>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                                        <input type="number" step="0.01" data-category="SALESMAN" data-type="in" placeholder="Salesman" class="entry-input w-full pl-7 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all">
+                                    </div>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                                        <input type="number" step="0.01" data-category="VAN" data-type="in" placeholder="Van" class="entry-input w-full pl-7 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all">
+                                    </div>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                                        <input type="number" step="0.01" data-category="OFFICE2" data-type="in" placeholder="Office 2" class="entry-input w-full pl-7 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all">
+                                    </div>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                                        <input type="number" step="0.01" data-category="WEIGH BRIDGE" data-type="in" placeholder="Weigh Bridge" class="entry-input w-full pl-7 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all">
+                                    </div>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                                        <input type="number" step="0.01" data-category="RENT" data-type="in" placeholder="Rent" class="entry-input w-full pl-7 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-500 outline-none transition-all">
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- EXPENSES -->
+                            <section>
+                                <div class="flex items-center gap-2 mb-4 border-b border-rose-50 pb-2">
+                                    <div class="h-2 w-2 rounded-full bg-rose-500"></div>
+                                    <h2 class="text-[10px] font-black text-rose-600 uppercase tracking-[0.2em]">Expenses (OUT)</h2>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                                        <input type="number" step="0.01" data-category="DIESEL" data-type="out" placeholder="Diesel" class="entry-input w-full pl-7 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all">
+                                    </div>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                                        <input type="number" step="0.01" data-category="PETROL" data-type="out" placeholder="Petrol" class="entry-input w-full pl-7 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all">
+                                    </div>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                                        <input type="number" step="0.01" data-category="SALARY" data-type="out" placeholder="Salary" class="entry-input w-full pl-7 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all">
+                                    </div>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                                        <input type="number" step="0.01" data-category="TEA" data-type="out" placeholder="Tea" class="entry-input w-full pl-7 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all">
+                                    </div>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                                        <input type="number" step="0.01" data-category="OFFICE" data-type="out" placeholder="Office" class="entry-input w-full pl-7 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all">
+                                    </div>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">₹</span>
+                                        <input type="number" step="0.01" data-category="BANK D.P" data-type="out" placeholder="Bank D.P" class="entry-input w-full pl-7 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-rose-500 outline-none transition-all">
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <button type="submit" class="btn w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-black mt-4 text-lg shadow-lg flex items-center justify-center gap-2">
+                            <span>Save Transactions</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: DASHBOARD -->
+            <div class="lg:col-span-8 space-y-6 md:space-y-8">
+                <!-- Daily KPIs -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                    <div class="kpi-card bg-white p-6 rounded-2xl shadow-sm border border-slate-100 border-l-4 border-l-emerald-500">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Today's Total IN</p>
+                                <p id="dailyTotalIn" class="text-3xl font-black text-emerald-600 mt-1">₹0.00</p>
+                            </div>
+                            <div class="bg-emerald-50 p-2 rounded-lg">
+                                <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-4 font-medium" id="selectedDateTitle1"></p>
+                    </div>
+
+                    <div class="kpi-card bg-white p-6 rounded-2xl shadow-sm border border-slate-100 border-l-4 border-l-rose-500">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Today's Total OUT</p>
+                                <p id="dailyTotalOut" class="text-3xl font-black text-rose-600 mt-1">₹0.00</p>
+                            </div>
+                            <div class="bg-rose-50 p-2 rounded-lg">
+                                <svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path></svg>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-4 font-medium" id="selectedDateTitle2"></p>
+                    </div>
+                </div>
+                
+                <!-- Financial Reports & Charts -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                        <h3 class="text-xl font-bold text-slate-800">Financial Reports</h3>
+                        <div id="downloadButtons" class="flex gap-2 hidden w-full md:w-auto">
+                            <button onclick="exportPDF()" class="btn flex-1 md:flex-none bg-rose-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-rose-600">PDF</button>
+                            <button onclick="exportExcel()" class="btn flex-1 md:flex-none bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-emerald-700">Excel</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-50 p-4 rounded-xl items-end">
+                        <div class="md:col-span-5">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Start Date</label>
+                            <input type="date" id="startDate" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div class="md:col-span-5">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">End Date</label>
+                            <input type="date" id="endDate" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div class="md:col-span-2">
+                            <button onclick="generateFinancialReport()" class="btn w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 shadow-md">Run</button>
+                        </div>
+                    </div>
+
+                    <div id="reportOutput" class="mt-8 space-y-8 hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-4">
+                                <h4 class="text-sm font-bold text-emerald-600 uppercase tracking-widest border-b pb-2">Income Analysis</h4>
+                                <div class="bg-slate-50 p-4 rounded-xl h-64 flex items-center justify-center">
+                                    <canvas id="incomeChart"></canvas>
+                                </div>
+                                <div class="table-container border border-slate-100 rounded-lg">
+                                    <table class="w-full text-xs">
+                                        <thead class="bg-slate-100 text-slate-500">
+                                            <tr>
+                                                <th class="px-3 py-2 text-left">Category</th>
+                                                <th class="px-3 py-2 text-right">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="incomeReportBody" class="divide-y divide-slate-100"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <h4 class="text-sm font-bold text-rose-600 uppercase tracking-widest border-b pb-2">Expense Analysis</h4>
+                                <div class="bg-slate-50 p-4 rounded-xl h-64 flex items-center justify-center">
+                                    <canvas id="expenseChart"></canvas>
+                                </div>
+                                <div class="table-container border border-slate-100 rounded-lg">
+                                    <table class="w-full text-xs">
+                                        <thead class="bg-slate-100 text-slate-500">
+                                            <tr>
+                                                <th class="px-3 py-2 text-left">Category</th>
+                                                <th class="px-3 py-2 text-right">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="expenseReportBody" class="divide-y divide-slate-100"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Summary Table -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <h3 class="text-xl font-bold text-slate-800 tracking-tight">Monthly Ledger</h3>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                           <button onclick="exportAllData()" class="btn flex-1 sm:flex-none bg-indigo-50 text-indigo-600 text-[10px] font-black py-2.5 px-4 rounded-lg hover:bg-indigo-100 uppercase tracking-wider">Export Backup</button>
+                           <button onclick="clearAllData()" class="btn flex-1 sm:flex-none bg-slate-900 text-white text-[10px] font-black py-2.5 px-4 rounded-lg hover:bg-black uppercase tracking-wider">Clear Screen</button>
+                        </div>
+                    </div>
+                    <div class="table-container custom-scrollbar max-h-[500px] border border-slate-100 rounded-xl">
+                        <table class="w-full text-sm text-left border-collapse">
+                            <thead class="sticky top-0 bg-slate-900 text-slate-300 uppercase text-[10px] font-black tracking-widest z-10">
+                                <tr>
+                                    <th class="px-4 py-4 whitespace-nowrap">Date</th>
+                                    <th class="px-4 py-4 text-right whitespace-nowrap">Opening</th>
+                                    <th class="px-4 py-4 text-right text-emerald-400 whitespace-nowrap">Total IN</th>
+                                    <th class="px-4 py-4 text-right text-rose-400 whitespace-nowrap">Total OUT</th>
+                                    <th class="px-4 py-4 text-right text-white bg-slate-800 whitespace-nowrap">Closing</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthlySummaryBody" class="divide-y divide-slate-100 bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        //'http://127.0.0.1:8000/transactions'; 
+        const API_URL = 'https://muttha-sales-api.onrender.com/';
+        let transactions = JSON.parse(localStorage.getItem('muttha_transactions')) || [];
+        let inChart, outChart;
+
+        // AUTHENTICATION LOGIC
+        function checkAuth() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            if (!isLoggedIn) {
+                // If not logged in, redirect to login.html
+                window.location.href = 'login.html';
+            } else {
+                // If logged in, show the dashboard and fetch data
+                document.getElementById('dashboardApp').classList.remove('hidden-view');
+                loadData();
+            }
+        }
+
+        function logout() {
+            // Clear the login state and redirect
+            localStorage.removeItem('isLoggedIn');
+            window.location.href = 'login.html';
+        }
+
+        async function loadData() {
+            try {
+                const res = await fetch(API_URL);
+                if (res.ok) {
+                    transactions = await res.json();
+                    localStorage.setItem('muttha_transactions', JSON.stringify(transactions));
+                }
+            } catch (err) {
+                console.warn("Backend connection failed. Using local storage data.");
+            }
+            refreshAllViews();
+        }
+
+        document.getElementById('entryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const date = document.getElementById('entryDate').value;
+            const inputs = document.querySelectorAll('.entry-input');
+            let hasEntry = false;
+
+            for (const input of inputs) {
+                const amount = parseFloat(input.value);
+                if (amount > 0) {
+                    hasEntry = true;
+                    const newTx = {
+                        id: Date.now() + Math.random(),
+                        date: date,
+                        category: input.dataset.category,
+                        amount: amount,
+                        type: input.dataset.type,
+                        description: ""
+                    };
+                    transactions.push(newTx);
+                    
+                    // Sync with local storage
+                    localStorage.setItem('muttha_transactions', JSON.stringify(transactions));
+
+                    // Attempt to sync with backend
+                    try {
+                        await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(newTx)
+                        });
+                    } catch (err) {}
+                }
+            }
+
+            if(hasEntry) {
+                refreshAllViews();
+                e.target.reset();
+                document.getElementById('entryDate').value = date; 
+            }
+        });
+
+        function refreshAllViews() {
+            const selDate = document.getElementById('viewDate').value;
+            if (!selDate) return;
+            
+            document.getElementById('selectedDateTitle1').textContent = `View for ${selDate}`;
+            document.getElementById('selectedDateTitle2').textContent = `View for ${selDate}`;
+
+            const daily = transactions.filter(t => t.date === selDate);
+            const tIn = daily.filter(t => t.type === 'in').reduce((s, t) => s + t.amount, 0);
+            const tOut = daily.filter(t => t.type === 'out').reduce((s, t) => s + t.amount, 0);
+            document.getElementById('dailyTotalIn').textContent = `₹${tIn.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+            document.getElementById('dailyTotalOut').textContent = `₹${tOut.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+
+            const monthVal = document.getElementById('monthSelector').value;
+            if (!monthVal) return;
+
+            const [year, month] = monthVal.split('-').map(Number);
+            const daysCount = new Date(year, month, 0).getDate();
+            const body = document.getElementById('monthlySummaryBody');
+            body.innerHTML = '';
+
+            let balance = 0;
+            transactions.sort((a,b) => a.date.localeCompare(b.date)).forEach(t => {
+                if (t.date < `${monthVal}-01`) {
+                    balance += (t.type === 'in' ? t.amount : -t.amount);
+                }
+            });
+
+            for (let d = 1; d <= daysCount; d++) {
+                const dStr = String(d).padStart(2, '0');
+                const curDate = `${monthVal}-${dStr}`;
+                const dayTxs = transactions.filter(t => t.date === curDate);
+                const dayIn = dayTxs.filter(t => t.type === 'in').reduce((s, t) => s + t.amount, 0);
+                const dayOut = dayTxs.filter(t => t.type === 'out').reduce((s, t) => s + t.amount, 0);
+                const opening = balance;
+                const closing = opening + dayIn - dayOut;
+                
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50 transition-colors";
+                row.innerHTML = `
+                    <td class="px-4 py-4 font-bold text-slate-700 whitespace-nowrap border-r border-slate-50">${dStr} ${new Date(year, month-1).toLocaleString('default', { month: 'short' })}</td>
+                    <td class="px-4 py-4 text-right text-slate-500 font-medium whitespace-nowrap">₹${opening.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td class="px-4 py-4 text-right text-emerald-600 font-bold whitespace-nowrap">+₹${dayIn.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td class="px-4 py-4 text-right text-rose-600 font-bold whitespace-nowrap">-₹${dayOut.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td class="px-4 py-4 text-right font-black text-slate-900 bg-slate-50/50 whitespace-nowrap">₹${closing.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                `;
+                body.appendChild(row);
+                balance = closing;
+            }
+        }
+
+        function generateFinancialReport() {
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            if(!start || !end) return;
+
+            const rangeData = transactions.filter(t => t.date >= start && t.date <= end);
+            const inSum = rangeData.filter(t => t.type === 'in').reduce((acc, t) => { acc[t.category] = (acc[t.category]||0) + t.amount; return acc; }, {});
+            const outSum = rangeData.filter(t => t.type === 'out').reduce((acc, t) => { acc[t.category] = (acc[t.category]||0) + t.amount; return acc; }, {});
+
+            document.getElementById('reportOutput').classList.remove('hidden');
+            document.getElementById('downloadButtons').classList.remove('hidden');
+
+            const renderSummaryTable = (id, data, colorClass) => {
+                const b = document.getElementById(id);
+                b.innerHTML = '';
+                Object.entries(data).forEach(([cat, amt]) => {
+                    const r = document.createElement('tr');
+                    r.innerHTML = `<td class="px-3 py-2 font-medium text-slate-600">${cat}</td><td class="px-3 py-2 text-right font-bold ${colorClass}">₹${amt.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>`;
+                    b.appendChild(r);
+                });
+            };
+
+            renderSummaryTable('incomeReportBody', inSum, 'text-emerald-600');
+            renderSummaryTable('expenseReportBody', outSum, 'text-rose-600');
+
+            if(inChart) inChart.destroy();
+            inChart = new Chart(document.getElementById('incomeChart'), {
+                type: 'doughnut',
+                data: { labels: Object.keys(inSum), datasets: [{ data: Object.values(inSum), backgroundColor: ['#10b981', '#34d399', '#059669', '#6ee7b7', '#065f46'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+            });
+
+            if(outChart) outChart.destroy();
+            outChart = new Chart(document.getElementById('expenseChart'), {
+                type: 'doughnut',
+                data: { labels: Object.keys(outSum), datasets: [{ data: Object.values(outSum), backgroundColor: ['#f43f5e', '#fb7185', '#be123c', '#fda4af', '#9f1239'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+            });
+        }
+
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Financial Report", 14, 20);
+            const rangeData = transactions.filter(t => t.date >= document.getElementById('startDate').value && t.date <= document.getElementById('endDate').value);
+            const rows = rangeData.map(t => [t.date, t.category, t.type.toUpperCase(), t.amount.toFixed(2)]);
+            doc.autoTable({ head: [['Date', 'Category', 'Type', 'Amount']], body: rows, startY: 30 });
+            doc.save("Muttha_Sales_Report.pdf");
+        }
+
+        function exportExcel() {
+            const ws = XLSX.utils.json_to_sheet(transactions);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data");
+            XLSX.writeFile(wb, "Muttha_Sales_Backup.xlsx");
+        }
+
+        function clearAllData() {
+            if (confirm("Clear local records from screen?")) {
+                transactions = [];
+                localStorage.removeItem('muttha_transactions');
+                refreshAllViews();
+            }
+        }
+
+        window.onload = () => {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const month = today.substring(0, 7);
+            document.getElementById('viewDate').value = today;
+            document.getElementById('entryDate').value = today;
+            document.getElementById('monthSelector').value = month;
+            document.getElementById('startDate').value = month + "-01";
+            document.getElementById('endDate').value = today;
+            
+            checkAuth();
+        };
+    </script>
+</body>
+</html>
